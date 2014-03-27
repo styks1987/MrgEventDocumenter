@@ -11,7 +11,6 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
 // TODO
-// Dryrun
 // Folder choosing
 // Output location
 
@@ -25,7 +24,8 @@ App::uses('File', 'Utility');
  */
 class EventDocumenterShell extends AppShell {
 
-	public function document($dryrun = true){
+	public function document(){
+		// For now, I am limiting these to the model and controller until further testing has been done
 		$dirs = ['Model', 'Controller'];
 		foreach($dirs as $dir){
 			$dir = new Folder($dir);
@@ -42,12 +42,17 @@ class EventDocumenterShell extends AppShell {
 					$all_events .= $events .= "\t * ".$event.' - '.$matches['Comment'][$i]."\n";
 					$i++;
 				}
+				// If events were found
+				// Add them to the top
 				if($events != ''){
 					$event_comment = "/**\n\t * Available Events\n";
 					$event_comment .= $events;
 					$event_comment .= "\t */";
+					// This will find the class declaration line and the available events line if it exist
 					$contents = preg_replace('/(class.*extends.*?{)(.*\/\*\*.*Available Events.*?\*\/)?/ms', '\1'."\n\n\t".$event_comment, $contents);
-					if($file->write($contents)){
+					if($this->params['dryrun'] == 'true'){
+						$this->out($file->name().' would be modified');
+					}elseif($file->write($contents)){
 						$this->out($file->name().' has been modified');
 					}
 				}
@@ -55,5 +60,21 @@ class EventDocumenterShell extends AppShell {
 		}
 		$this->out('done');
 		exit;
+	}
+
+
+	public function getOptionParser() {
+		$parser = parent::getOptionParser();
+		return $parser->description(array(
+			'Event Documenter Shell',
+			'',
+			'Puts a comment with all your events at the top of your models and controllers'
+		))->command('document', array(
+			'help' => 'Document your events'
+		))->addOption('dryrun', array(
+			'help' => 'By default no files will be modified',
+			'short' => 'd',
+			'default' => 'true'
+		));
 	}
 }
